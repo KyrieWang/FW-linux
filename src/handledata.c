@@ -150,11 +150,10 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 
 		cmd[cmdlen] = '\0';
 
-		//printf("cmd is :%s\n", cmd);
+		printf("cmd is :%s\n", cmd);
 
 		/*在Linux执行命令,添加防火墙规则*/
 		system(cmd);
-
 	}
 
 	/*防火墙设备确认*/
@@ -169,7 +168,8 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 		mac[maclen] = '\0';
 
 		printf("mac is :%s\n", mac);
-
+		printf("src_addr:%s\n", src_ip_addr);
+		printf("dst_addr:%s\n", dst_ip_addr);
 		send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac);	/*发送存在该防火墙的确认消息给客户端*/
 	}
 
