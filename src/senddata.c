@@ -8,6 +8,7 @@ modify date :
 #include <sys/types.h>
 
 #include "senddata.h"
+#include "get_ip.h"
 
 /*将MAC地址转换为byte[]数组*/
 int mac_str_to_bin( u_char *str, u_char *mac);
@@ -18,10 +19,21 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 	libnet_t *handle; /* Libnet句柄 */
 	int packet_size; /* 构造的数据包大小 */
 	char *device = "br0"; /* 设备名字,也支持点十进制的IP地址,会自己找到匹配的设备 */
-	char *src_ip_str = src_ipstr; /* 源IP地址字符串 */
-	char *dst_ip_str = dst_ipstr; /* 目的IP地址字符串 */
+	//char *src_ip_str = src_ipstr; /* 源IP地址字符串 */
+	//char *dst_ip_str = dst_ipstr; /* 目的IP地址字符串 */
+	char src_ip_str[255] = {0};	/* 源IP地址字符串 */
+	char dst_ip_str[255] = {0};	/* 目的IP地址字符串 */
+	strncpy(src_ip_str, src_ipstr, strlen(src_ipstr)+1);
+	strncpy(dst_ip_str, dst_ipstr, strlen(dst_ipstr)+1);
+	printf("srcip is:%s , dstip is:%s\n", src_ip_str,dst_ip_str);
+	char *local_IP = get_ip();
 
 	#if 1
+		printf("local_IP is:%s\n", local_IP);
+	#endif
+
+	#if 1
+		printf("src-ip is:%s , dst-ip is:%s\n", src_ipstr,dst_ipstr);
 		printf("srcip is:%s , dstip is:%s\n", src_ip_str,dst_ip_str);
 	#endif
 	
@@ -81,7 +93,7 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 		return (-1);
 	};
 
-	strncpy((char*)payload, "udp test!!!", sizeof((char*)payload)-1); /* 构造负载的内容 */
+	strncpy((char*)payload, local_IP, strlen(local_IP)+1); /* 构造负载的内容 */`
 	payload_s = strlen((char*)payload); /* 计算负载内容的长度 */
 
 	udp_tag = libnet_build_udp(
@@ -135,10 +147,11 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 		return (-5);
 	};
 
-	#if 1
 	packet_size = libnet_write(handle); /* 发送已经构造的数据包*/
 
+	#if 1
 	printf("Send successfully!!!\n");
+	printf("\n");
 	#endif
 
 	#if 0
