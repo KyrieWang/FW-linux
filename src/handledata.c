@@ -155,11 +155,17 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 			printf("cmd is :%s\n", cmd);
 		#endif
 		/*在Linux执行命令,添加防火墙规则*/
-		int ret = system(cmd);
-		if(WIFSIGNALED(ret))
+		int status = system(cmd);
+		#ifdef debug
+				printf("cmd execute successfully !!!\n");
+		#endif
+		if(!WIFSIGNALED(status))
 		{
 			char *confirm_info = "yes";
 			send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac, confirm_info);
+			#ifdef debug
+				printf("confirm yes !!!\n");
+			#endif
 		}
 	}
 
