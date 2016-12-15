@@ -32,9 +32,11 @@ modify date :
 
 #include "handledata.h"
 #include "senddata.h"
+#include "get_ip.h"
 
 #define MAX_MSG_SIZE 1024 /*接收缓冲区大小*/
 #define LOG_CP_RANGE 1024 /*拷贝的数据包范围*/
+#define debug
 
 /*回调函数*/
 int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *data);
@@ -79,7 +81,7 @@ void handle_data()
 
 int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *data)
 {
-	#if 1
+	#ifdef debug
 		printf("starting processing data:\n");
 	#endif
 		
@@ -93,17 +95,13 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 	struct in_addr src_addr;
 	src_addr.s_addr = iph->saddr;
 	char *src_ip = inet_ntoa(src_addr);
-	
-	#if 0
-		printf("src_addr:%s\n", src_ip);
-	#endif
 
 	size_t src_ip_len = strlen(src_ip);
 	char src_ip_addr[src_ip_len + 1];
 	strncpy(src_ip_addr, src_ip, src_ip_len + 1);
 	src_ip_addr[src_ip_len] = '\0';
 	
-	#if 0
+	#ifdef debug
 		printf("src_addr:%s\n", src_ip_addr);
 	#endif
 
@@ -112,18 +110,18 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 	dst_addr.s_addr = iph->daddr;
 	char *dst_ip_addr = inet_ntoa(dst_addr);
 
-	#if 0
+	#ifdef debug
 		printf("dst_addr:%s\n", dst_ip_addr);
 	#endif
 	
-	#if 0
+	#ifdef debug
 		printf("protocol is:\n");
 	#endif
 	
 	/*
 	**判断协议类型
 	*/
-	#if 0
+	#ifdef debug
 		switch(iph->protocol)
 		{
     		case IPPROTO_TCP:printf("TCP\n");break;
@@ -143,17 +141,26 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 	if (iph->protocol == IPPROTO_UDP && ntohs(udph->dest) == 22222
 								&& *selfh1 == 0x0f && *selfh2 == 0x0f)
 	{
+		size_t maclen = str_len(selfh3);
+		char mac[maclen + 1];
+		strncpy(mac, selfh3, maclen+1);
+		mac[maclen] = '\0';
+		
 		size_t cmdlen = str_len(selfh3);
 		char cmd[cmdlen + 1];
-
 		strncpy(cmd, selfh3, cmdlen+1);
-
 		cmd[cmdlen] = '\0';
 
-		printf("cmd is :%s\n", cmd);
-
+		#ifdef debug
+			printf("cmd is :%s\n", cmd);
+		#endif
 		/*在Linux执行命令,添加防火墙规则*/
-		system(cmd);
+		int ret = system(cmd);
+		if(WIFSIGNALED(ret))
+		{
+			char *confirm_info = "yes";
+			send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac, confirm_info);
+		}
 	}
 
 	/*防火墙设备确认*/
@@ -162,50 +169,29 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 	{
 		size_t maclen = str_len(selfh3);
 		char mac[maclen + 1];
-
 		strncpy(mac, selfh3, maclen+1);
-
 		mac[maclen] = '\0';
-
-		printf("mac is :%s\n", mac);
-		printf("src_addr:%s\n", src_ip_addr);
-		printf("dst_addr:%s\n", dst_ip_addr);
-		send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac);	/*发送存在该防火墙的确认消息给客户端*/
-	}
-
-#if 0
-	if(iph->protocol == IPPROTO_UDP && ntohs(udph->dest) == 2222)
-	{	
-		if (*selfh1 == 0x0f && *selfh2 == 0x0f)		/*检测是否存在防火墙设备*/
-		{
-			send_Udp(src_ip_addr, selfb1);	/*发送存在该防火墙的确认消息给客户端*/
-		}
 		
-		else if (*selfh1 == 0x0e && *selfh2 == 0x0e)	/*检测是否要配置该防火墙*/
-		{
-			/*防火墙规则配置*/
-			switch(*selfb1)
-			{
-				case 0x01:
-				{
-					if(*selfb2 == 0x01)
-						printf("%d , %d\n", *selfb1, *selfb2);
-				} break;
-			
-				case 0x02:
-				{
-					if(*selfb2 == 0x02)
-						printf("%d , %d\n", *selfb1, *selfb2);
-				} break;
-			
-				default : ;
-			}
-		}
+		#ifdef debug
+			printf("mac is :%s\n", mac);
+			printf("src_addr:%s\n", src_ip_addr);
+			printf("dst_addr:%s\n", dst_ip_addr);
+		#endif
 
-		else ;
-	};
-#endif
+		char src_ip_str[255] = {0};
+		char dst_ip_str[255] = {0};
+		strncpy(src_ip_str, src_ip_addr, strlen(src_ip_addr)+1);
+		strncpy(dst_ip_str, dst_ip_addr, strlen(dst_ip_addr)+1);
+		char *local_IP = get_ip();
 
+		#ifdef debug
+			printf("after get_ip :\n");
+			printf("src_addr:%s\n", src_ip_addr);
+			printf("dst_addr:%s\n", dst_ip_addr);
+		#endif
+
+		send_udp(src_ip_str, dst_ip_str, (u_char *)mac, local_IP);	/*发送存在该防火墙的确认消息给客户端*/
+	}
 	return 0;
 }
 
@@ -221,18 +207,3 @@ size_t str_len(char *str)
 
 	return length;
 }
-
-#if 0
-char *cmd_handle(char *str , size_t length)
-{
-	char cmd[length + 1];
-
-	strncpy(cmd, str, length+1);
-
-	cmd[length] = '\0';
-
-	printf("cmd is :%s\n", cmd);
-
-	return cmd;
-}
-#endif

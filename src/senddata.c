@@ -8,32 +8,25 @@ modify date :
 #include <sys/types.h>
 
 #include "senddata.h"
-#include "get_ip.h"
 
+#define debug
 /*将MAC地址转换为byte[]数组*/
 int mac_str_to_bin( u_char *str, u_char *mac);
 
 /*无IP模式下发送UDP数据包*/
-int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr) 
+int send_udp(char *dst_ipstr, char *src_ipstr, u_char *dst_mac_addr, char *cont_str)
 {
 	libnet_t *handle; /* Libnet句柄 */
 	int packet_size; /* 构造的数据包大小 */
 	char *device = "br0"; /* 设备名字,也支持点十进制的IP地址,会自己找到匹配的设备 */
-	//char *src_ip_str = src_ipstr; /* 源IP地址字符串 */
-	//char *dst_ip_str = dst_ipstr; /* 目的IP地址字符串 */
-	char src_ip_str[255] = {0};	/* 源IP地址字符串 */
-	char dst_ip_str[255] = {0};	/* 目的IP地址字符串 */
-	strncpy(src_ip_str, src_ipstr, strlen(src_ipstr)+1);
-	strncpy(dst_ip_str, dst_ipstr, strlen(dst_ipstr)+1);
-	printf("srcip is:%s , dstip is:%s\n", src_ip_str,dst_ip_str);
-	char *local_IP = get_ip();
-
-	#if 1
-		printf("local_IP is:%s\n", local_IP);
-	#endif
-
-	#if 1
-		printf("src-ip is:%s , dst-ip is:%s\n", src_ipstr,dst_ipstr);
+	char *src_ip_str = src_ipstr; /* 源IP地址字符串 */
+	char *dst_ip_str = dst_ipstr; /* 目的IP地址字符串 */
+	//char src_ip_str[255] = {0};	/* 源IP地址字符串 */
+	//char dst_ip_str[255] = {0};	/* 目的IP地址字符串 */
+	//strncpy(src_ip_str, src_ipstr, strlen(src_ipstr)+1);
+	//strncpy(dst_ip_str, dst_ipstr, strlen(dst_ipstr)+1);
+	
+	#ifdef debug
 		printf("srcip is:%s , dstip is:%s\n", src_ip_str,dst_ip_str);
 	#endif
 	
@@ -49,7 +42,7 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 	mac_str_to_bin(buffer,src_mac);  
 	pclose(fp);
 
-	#if 1
+	#ifdef debug
 		//printf("%s\n",buffer);  
 		printf("Local_MAC : %2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X\n", 
 				src_mac[0],src_mac[1],src_mac[2],src_mac[3],src_mac[4],src_mac[5]);
@@ -70,7 +63,7 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 
 	mac_str_to_bin(mac, dst_mac);
 	
-	#if 1
+	#ifdef debug
 		printf("Dst_MAC : %2.2X-%2.2X-%2.2X-%2.2X-%2.2X-%2.2X\n", 
 				dst_mac[0],dst_mac[1],dst_mac[2],dst_mac[3],dst_mac[4],dst_mac[5]);
 	#endif
@@ -89,11 +82,13 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 
 	/* 初始化Libnet */
 	if ( (handle = libnet_init(LIBNET_LINK, device, error)) == NULL ) {
-		printf("libnet_init failure\n");
+		#ifdef debug
+			printf("libnet_init failure\n");
+		#endif
 		return (-1);
 	};
 
-	strncpy((char*)payload, local_IP, strlen(local_IP)+1); /* 构造负载的内容 */`
+	strncpy((char*)payload, cont_str, strlen(cont_str)+1); /* 构造负载的内容 */
 	payload_s = strlen((char*)payload); /* 计算负载内容的长度 */
 
 	udp_tag = libnet_build_udp(
@@ -107,7 +102,9 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 			0 /* 新建包 */
 			);
 	if (udp_tag == -1) {
-		printf("libnet_build_tcp failure\n");
+		#ifdef debug
+			printf("libnet_build_tcp failure\n");
+		#endif
 		return (-3);
 	};
 
@@ -128,7 +125,9 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 			0 /* 协议块标记可修改或创建,0表示构造一个新的*/
 			);
 	if (ip_tag == -1) {
-		printf("libnet_build_ipv4 failure\n");
+		#ifdef debug
+			printf("libnet_build_ipv4 failure\n");
+		#endif
 		return (-4);
 	};
 
@@ -143,33 +142,17 @@ int send_udp(char *dst_ipstr , char *src_ipstr , u_char *dst_mac_addr)
 			0 /* 协议块标记，0表示构造一个新的 */ 
 			);
 	if (eth_tag == -1) {
-		printf("libnet_build_ethernet failure\n");
+		#ifdef debug
+			printf("libnet_build_ethernet failure\n");
+		#endif
 		return (-5);
 	};
 
 	packet_size = libnet_write(handle); /* 发送已经构造的数据包*/
 
-	#if 1
-	printf("Send successfully!!!\n");
-	printf("\n");
-	#endif
-
-	#if 0
-		for (int i = 0; i < 10; ++i)
-		{
-			packet_size = libnet_write(handle); /* 发送已经构造的数据包*/
-
-			printf("Send successfully!!!\n");
-		};
-	#endif
-
-	#if 0
-		while(1)
-		{
-			packet_size = libnet_write(handle); /* 发送已经构造的数据包*/
-
-			printf("Send successfully!!!\n");
-		}
+	#ifdef debug
+		printf("Send successfully!!!\n");
+		printf("\n");
 	#endif
 
 	libnet_destroy(handle); /* 释放句柄 */
