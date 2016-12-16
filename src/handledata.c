@@ -162,7 +162,7 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 		if(!WIFSIGNALED(status))
 		{
 			char *confirm_info = "yes";
-			send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac, confirm_info);
+			send_udp(src_ip_addr, dst_ip_addr, (u_char *)mac, confirm_info, 30332, 30333);
 			#ifdef debug
 				printf("confirm yes !!!\n");
 			#endif
@@ -195,8 +195,14 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 			printf("src_addr:%s\n", src_ip_addr);
 			printf("dst_addr:%s\n", dst_ip_addr);
 		#endif
-
-		send_udp(src_ip_str, dst_ip_str, (u_char *)mac, local_IP);	/*发送存在该防火墙的确认消息给客户端*/
+		
+		if(local_IP == NULL)
+		{
+			char *no_IP = "0.0.0.0";
+			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, no_IP, 30330, 30331);
+		}
+		else
+			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, local_IP, 30330, 30331);	/*发送存在该防火墙的确认消息给客户端*/
 	}
 	return 0;
 }

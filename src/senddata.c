@@ -14,7 +14,8 @@ modify date :
 int mac_str_to_bin( u_char *str, u_char *mac);
 
 /*无IP模式下发送UDP数据包*/
-int send_udp(char *dst_ipstr, char *src_ipstr, u_char *dst_mac_addr, char *cont_str)
+int send_udp(char *dst_ipstr, char *src_ipstr, u_char *dst_mac_addr,
+				char *cont_str, u_int16_t src_port, u_int16_t dst_port)
 {
 	libnet_t *handle; /* Libnet句柄 */
 	int packet_size; /* 构造的数据包大小 */
@@ -92,8 +93,8 @@ int send_udp(char *dst_ipstr, char *src_ipstr, u_char *dst_mac_addr, char *cont_
 	payload_s = strlen((char*)payload); /* 计算负载内容的长度 */
 
 	udp_tag = libnet_build_udp(
-			30330, /* 源端口 */
-			30331, /* 目的端口 */
+			src_port, /* 源端口 */
+			dst_port, /* 目的端口 */
 			LIBNET_UDP_H + payload_s, /* 长度 */
 			0, /* 校验和,0为libnet自动计算 */
 			payload, /* 负载内容 */
