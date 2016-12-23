@@ -134,22 +134,23 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 		
 	struct udphdr *udph;	
 	udph = (struct udphdr *)((void *)iph+4*(iph->ihl));  /*udph指向udp数据包头*/
-	char *selfh1 = (char *)((void *)udph + 8);  /*selfh指向自定义数据包包头，包头为两个字节*/
+	char *selfh1 = (char *)((void *)udph + 8);  /*selfh指向自定义数据包包头，包头为3个字节*/
 	char *selfh2 = (char *)((void *)udph + 9);
-	char *selfh3 = (char *)((void *)udph + 10); /*self3指向自定义数据包的数据内容*/
+	char *selfh3 = (char *)((void *)udph + 10); 
+	char *selfh4 = (char *)((void *)udph + 11); /*self4指向自定义数据包的数据内容*/
 
 	/*防火墙规则配置*/
 	if (iph->protocol == IPPROTO_UDP && ntohs(udph->dest) == 22222
-								&& *selfh1 == 0x0f && *selfh2 == 0x0f)
+								&& *selfh1 == 0x0f && *selfh2 == 0x0f && *selfh3 ==0x0d)
 	{
-		size_t maclen = str_len(selfh3);
+		size_t maclen = str_len(selfh4);
 		char mac[maclen + 1];
-		strncpy(mac, selfh3, maclen+1);
+		strncpy(mac, selfh4, maclen+1);
 		mac[maclen] = '\0';
 		
-		size_t cmdlen = str_len(selfh3);
+		size_t cmdlen = str_len(selfh4);
 		char cmd[cmdlen + 1];
-		strncpy(cmd, selfh3, cmdlen+1);
+		strncpy(cmd, selfh4, cmdlen+1);
 		cmd[cmdlen] = '\0';
 
 		#ifdef debug
@@ -172,11 +173,11 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 
 	/*防火墙设备确认*/
 	if (iph->protocol == IPPROTO_UDP && ntohs(udph->dest) == 33333
-								&& *selfh1 == 0x0f && *selfh2 == 0x0f)
+								&& *selfh1 == 0x0f && *selfh2 == 0x0e && *selfh3 ==0x0d)
 	{
-		size_t maclen = str_len(selfh3);
+		size_t maclen = str_len(selfh4);
 		char mac[maclen + 1];
-		strncpy(mac, selfh3, maclen+1);
+		strncpy(mac, selfh4, maclen+1);
 		mac[maclen] = '\0';
 		
 		#ifdef debug
