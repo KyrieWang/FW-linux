@@ -33,6 +33,7 @@ modify date :
 #include "handledata.h"
 #include "senddata.h"
 #include "get_ip.h"
+#include "get_mac_by_ip.h"
 
 #define MAX_MSG_SIZE 1024 /*接收缓冲区大小*/
 #define LOG_CP_RANGE 1024 /*拷贝的数据包范围*/
@@ -82,7 +83,7 @@ void handle_data()
 int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *nfa, void *data)
 {
 	#ifdef debug
-		printf("starting processing data:\n");
+		printf("*********starting processing data***********\n");
 	#endif
 		
 	char *payload;
@@ -188,21 +189,39 @@ int handle_packet(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflo
 		char dst_ip_str[255] = {0};
 		strncpy(src_ip_str, src_ip_addr, strlen(src_ip_addr)+1);
 		strncpy(dst_ip_str, dst_ip_addr, strlen(dst_ip_addr)+1);
-		char *local_IP = get_ip();
+		char *local_IP = get_ip();	//获取防火墙IP
+		char dev_mac[128] = {0};
+		get_mac_by_ip(dst_ip_str, dev_mac);	//获取受保护设备的mac地址
 
 		#ifdef debug
 			printf("after get_ip :\n");
 			printf("src_addr:%s\n", src_ip_addr);
 			printf("dst_addr:%s\n", dst_ip_addr);
+			printf("dev_mac is %s\n", dev_mac);
 		#endif
 		
+		char content[128];
+		memset(content, '\0', sizeof(content));
 		if(local_IP == NULL)
 		{
-			char *no_IP = "0.0.0.0";
-			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, no_IP, 30330, 30331);
+			char *no_IP = "0.0.0.0&";
+			strncpy(content, no_IP, strlen(no_IP));
+			strncat(content, dev_mac, strlen(dev_mac));
+			#ifdef debug
+				printf("content is %s\n", content);
+			#endif
+			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, content, 30330, 30331);
 		}
 		else
-			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, local_IP, 30330, 30331);	/*发送存在该防火墙的确认消息给客户端*/
+		{
+			strncpy(content, local_IP, strlen(local_IP));
+			strncat(content, "&", strlen("&"));
+			strncat(content, dev_mac, strlen(dev_mac));
+			#ifdef debug
+				printf("content is %s\n", content);
+			#endif
+			send_udp(src_ip_str, dst_ip_str, (u_char *)mac, content, 30330, 30331);	/*发送存在该防火墙的确认消息给客户端*/
+		}
 	}
 	return 0;
 }
