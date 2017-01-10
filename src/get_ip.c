@@ -13,6 +13,7 @@
 #include "get_ip.h"
 
 #define ETH_NAME "br0"
+#define debug
 
 char *get_ip()
 {
@@ -32,12 +33,16 @@ char *get_ip()
       
     if (ioctl(sock, SIOCGIFADDR, &ifr) < 0)  
     {  
-        perror("ioctl");  
+        perror("ioctl");
         return NULL;  
     }  
   
     memcpy(&sin, &ifr.ifr_addr, sizeof(sin));  
-    temp_ip = inet_ntoa(sin.sin_addr);   
-    //fprintf(stdout, "eth0: %s\n", temp_ip);
+    temp_ip = inet_ntoa(sin.sin_addr);
+
+#ifdef debug 
+    fprintf(stdout, "br0: %s\n", temp_ip);
+#endif
+
     return temp_ip;
 }
